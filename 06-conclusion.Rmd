@@ -5,4 +5,4 @@ Bluhm, Richard, Axel Dreher, Andreas Fuchs, Bradley Parks, Austin Strange, and M
 
 Scissors, Derek. 2020. China’s Global Investment in 2019: Going Out Goes Small. Washington, DC: American Enterprise Institute. https://www.aei.org/china-global-investment-tracker/
 
-![](https://raw.githubusercontent.com/Ellen-Lan/Visualization-Final-Projects/master/pic/thankyou.jpg)
+![](https://raw.githubusercontent.com/ylli18/Data-Visualization-Project/master/pic/thankyou.jpg)

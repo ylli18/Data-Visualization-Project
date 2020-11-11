@@ -10,7 +10,7 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 library(tidyverse)
 ```
 # Introduction
-![](https://raw.githubusercontent.com/Ellen-Lan/Visualization-Final-Projects/master/pic/Welcome.jpg)
+![](https://raw.githubusercontent.com/ylli18/Data-Visualization-Project/master/pic/Welcome.jpg)
 
 As China has quickly developed since its opening up and reform, its foreign influence has grown simultaneously. Most notably, Chinese investment abroad has risen quickly: at first, it grew as a spillover of Chinese economic boom. Then, when incumbent Chinese President Xi Jinping announced the Belt and Road Initiative (BRI) in 2013, it has become an increasingly centralized activity. Public or private, enterprises and banks have been mobilized to go abroad. In the past years, Chinese foreign investment has received lots of attention. In this website, we are trying to better understand Chinese foreign investment from 2005 to 2019, from its volume, destination, nature and many more.
 

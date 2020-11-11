@@ -1,0 +1,8 @@
+# Citation
+
+Bluhm, Richard, Axel Dreher, Andreas Fuchs, Bradley Parks, Austin Strange, and Michael Tierney. 2018. Connective Financing: Chinese Infrastructure Projects and the Diffusion of Economic Activity in Developing Countries. AidData Working Paper #64. Williamsburg, VA: AidData at William & Mary. https://www.aiddata.org/data/geocoded-chinese-global-official-finance-dataset
+
+
+Scissors, Derek. 2020. China’s Global Investment in 2019: Going Out Goes Small. Washington, DC: American Enterprise Institute. https://www.aei.org/china-global-investment-tracker/
+
+![](https://raw.githubusercontent.com/Ellen-Lan/Visualization-Final-Projects/master/pic/thankyou.jpg)

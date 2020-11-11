@@ -1,0 +1,134 @@
+# Text Analysis
+
+## Total Term Frequency
+```{r TTF1, warning=F, message=F}
+library(tidyverse)
+library(readxl)
+library(tidytext)
+library(tm)
+library(wordcloud)
+library(ggthemes)
+
+d <- read_xlsx("./data/GlobalChineseOfficialFinanceDataset_v1.0.xlsx")
+d <- d %>% filter(year %in% c(2005:2014))
+
+clean_corpus <- function(corpus){
+  corpus <- tm_map(corpus, removePunctuation)
+  corpus <- tm_map(corpus, content_transformer(tolower))
+  corpus <- tm_map(corpus, removeWords, c(stopwords("en")))  
+  corpus <- tm_map(corpus, removeNumbers)
+  corpus <- tm_map(corpus, stripWhitespace)
+  return(corpus)
+}
+
+clean_vector <- function(corpus){
+  corpus <- map(corpus, removePunctuation)
+  corpus <- map(corpus, tolower)
+  corpus <- map(corpus, removeWords, c(stopwords("en")))  
+  corpus <- map(corpus, removeNumbers)
+  corpus <- map(corpus, stripWhitespace)
+  return(corpus)
+}
+
+stemCompletion2 <- function(x, dictionary) {
+   x <- unlist(strsplit(as.character(x), " "))
+   x <- x[x != ""]
+   x <- stemCompletion(x, dictionary=dictionary)
+   x <- paste(x, sep="", collapse=" ")
+   PlainTextDocument(stripWhitespace(x))
+}
+
+#dic <- d$description %>% paste(collapse = " ") %>% clean_vector() %>% unlist() %>% strsplit(" ") %>% unlist()
+
+#description_modified <- vector()
+#for (i in nrow(d)) {
+#  dic_temp <- description[i] %>% clean_vector() %>% unlist() %>% strsplit(" ") %>% unlist()
+#  des_temp <- description[i] %>% stemDocument() %>% stem_Completion(dic_temp)
+#}
+
+#dic_temp <- d$description[1] %>% clean_vector() %>% unlist() %>% strsplit(" ") %>% unlist()
+#des_temp <- d$description[1] %>% clean_vector() %>% unlist() %>% stemDocument() %>% stemCompletion(dic_temp, type = "shortest")
+
+China_tf_idf <- Corpus(VectorSource(d$description)) %>% clean_corpus() %>%
+  TermDocumentMatrix() %>% tidy() %>% 
+  bind_tf_idf(term, document, count) %>% arrange(desc(tf_idf)) 
+z <- China_tf_idf %>% group_by(term) %>% summarize(count = sum(count)) %>% arrange(desc(count)) 
+zz <- z[5:14465, ]
+
+set.seed(12345)
+purple_orange <- brewer.pal(10, "PuOr")
+purple_orange <- purple_orange[-(1:2)]
+wordcloud(zz$term, zz$count, colors = purple_orange, max.words = 100) # all descriptions joint together, term count
+```
+
+Filtered for the decade of 2005-2014, the word cloud above shows the most frequently used words after combining all entries in AidData's Global Chinese Official Finance Dataset. We deliberately left out top four words--"china", "project", "chinese", and "million"--that are generally applicable to all descriptions regarding Chinese foreign development finance.  
+  
+As suggested above, we have several observations regarding the analysis:  
+1. "loan[s]" issued from "bank[s]" were the most important finance means. "Aid[s]" and "grant[s]" "donated" were another important channel of funding.   
+2. Most projects were some sort of "construction" projects. This is in accordance with our earlier analysis and knowledge about the nature of Chinese development finance.  
+3. Many projects also involved government agnecies, as shown by words like "embassy", "minister", "president", and "ambassador". These also shows that government interactions between Chinese government and its foreign outposts, and those between Chinese and foreign governments are likely to be abundant.  
+4. Ten of twelve months in a year are included above. The exceptions are February and December. This totally makes sense, as December is the end of year and most governments and companies are wrapping up their year instead of developing new projects, and February is usually when Chinese New Year is in and a long holiday takes place.  
+5. Relatively frequently, the projects are "road" building, "equipment" provision, "power" plants construction, and "agricultural" projects.  
+
+## Term Frequency by Entry
+```{r TTF2,warning=F, message=F}
+set.seed(11111)
+wordcloud(China_tf_idf$term, China_tf_idf$tf, colors = purple_orange, max.words = 100) # both ODA/OOF, tf-idf, term frequency
+```
+
+Filtered for the decade of 2005-2014, the word cloud above shows the most frequently used words among all entries without combining them together.   
+
+Here are some of our analysis based on the graph:   
+1. There are certain Chinese development finance whose main focuses is to provide "scholarships" to foreign students.  
+2. Several contries are important recipients of Chinese development finance, including "Uganda", "Costa" "Rica", "Sudan", "Micronesia", "Colombia", "Sri" Lanka, and "Serbia", all of which are developing countries that usually are not the go-to place for private financing.  
+3. Chinese telecommunication "ZTE" is the only firm listed above, which corresponds to its active role in Chinese foreign projects.  
+4. Types of projects that are mostly frequent based on this text analysis were "medical" projects, "pipe[lines]", and automobiles ("cars").  
+
+## ODA/OOF Projects Comparison
+```{r ODA OOF, warning=F, message=F}
+d_ODA <- d %>% filter(flow_class == "ODA-like")
+d_OOF <- d %>% filter(flow_class == "OOF-like")
+
+ODA_count <- Corpus(VectorSource(d_ODA$description)) %>% clean_corpus() %>% tm_map(stemDocument) %>% 
+  TermDocumentMatrix() %>% tidy() %>% 
+  bind_tf_idf(term, document, count) %>% arrange(desc(tf_idf)) %>% 
+  group_by(term) %>% summarize(count = sum(count)) %>% arrange(desc(count)) 
+
+OOF_count <- Corpus(VectorSource(d_OOF$description)) %>% clean_corpus() %>% tm_map(stemDocument) %>% 
+  TermDocumentMatrix() %>% tidy() %>% 
+  bind_tf_idf(term, document, count) %>% arrange(desc(tf_idf)) %>% 
+  group_by(term) %>% summarize(count = sum(count)) %>% arrange(desc(count)) 
+
+top_50 <- c(ODA_count$term[1:50], OOF_count$term[1:50])
+
+ODA_both_50 <- ODA_count %>% filter(term %in% top_50)
+OOF_both_50 <- OOF_count %>% filter(term %in% top_50)
+
+pyramid_terms <- full_join(ODA_both_50, OOF_both_50, c("term" = "term")) %>% select(count.x, count.y, term)
+colnames(pyramid_terms) <- c("ODA","OOF","terms")
+pyramid_terms <- pyramid_terms %>% gather(Type, Frequency, -terms)
+pyramid_terms$Frequency <- ifelse(pyramid_terms$Type=="ODA",
+                          pyramid_terms$Frequency, pyramid_terms$Frequency*-1)
+
+pyramid_terms$terms <- factor(pyramid_terms$terms)
+`%notin%` <- Negate(`%in%`)
+pyramid_terms <- pyramid_terms %>% filter(terms %notin% c("china", "project", "chines", "million"))
+ggplot(pyramid_terms, aes(x = reorder(terms, -Frequency), 
+                  y = Frequency, fill = Type)) +
+  geom_bar(data = filter(pyramid_terms, Type == "ODA"), stat = "identity") +  
+  geom_bar(data = filter(pyramid_terms, Type == "OOF"), stat = "identity") + 
+  scale_fill_brewer(palette = "Set1", direction=-1) + coord_flip() + 
+  ylab("") + xlab("") + 
+  theme_tufte() + ggtitle("Top 50 Words in Chinese ODA/OOF Investment") + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+Above is a pyramid plot comparison of the most important term stems between ODA projects and OOF projects. Please advise the Data Source section to check for the difference bewteen ODA and OOF projects. We filtered for the most commonly used 50 stems for ODA projects and OOF projects, and join them together. As we expected, there are obviously overlaps in the two top 50s. Like what we did to the first graph, we exclude four stems--"china", "project", "chines", "million"--that are generally applicable to all projects. 
+
+Here are the findings based on our analysis:   
+1. "Govern[ment]" was mentioned more in ODA projects than OOF projects. This makes sense because most ODA projects are government actions, whereas OOF projects are more commercial driven.   
+2. Following this logic, it is understandable that we see more "donat[ion]" in ODA projects than in OOF projects, and we see almost all "medic[al]" and "hospit[al]" projects are ODA projects as a type of assistance in contrast with very limited OOF projects. Additionally, "technic[al]" and "agricultur[al]" often took the means of ODA projects. In comparison, "cultur[al]" exchanges such as "Confucius" "institut[e]" and "power" provision projects were more popular as OOF projects.   
+3. The finance sources of ODA and OOF projects differ significantly. ODA projects were mostly financed through "grant[s]" and "aid[s]". Comparatively speaking, OOF projects relied on "bank[s]" more than ODA projects. Notably, there are almost equal mentions of "loan[s]" in ODA and OOF projects. China's "EXIM" (Export-Import) Bank is among the top 50 stem for OOF projects. This corresponds to the fact that the EXIM bank is an important source for loans.  
+
+

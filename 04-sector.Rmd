@@ -1,0 +1,147 @@
+# Sector of Investment
+
+## China Foreign Investment by Sectors:
+```{r bysector, warning=FALSE, message=FALSE}
+investment <- read_csv("./data/investment.csv")
+investment <- investment %>%
+  filter(Year >=2005 && Year <= 2019)
+bysector <- group_by(investment, investment$Sector)
+
+#dim(investment)
+#investment[1:2, ]
+#f <- ggplot(na.omit(investment), aes(x=luse, y=rich))
+data1 <- bysector %>%
+  group_by(Sector) %>%
+  summarise(counts = n())
+ggplot(data1, aes(x = reorder(Sector,-counts), y = counts)) +
+  geom_bar(fill = 'steelblue', stat = "identity",width=0.7) +
+  geom_text(aes(label = counts), vjust = -0.3) +
+  ylab("Number of projects") +
+  xlab('Sectors') +
+  ggtitle("Figure 1: China Foreign Investment by Sectors") +
+  theme(axis.text.x = element_text(angle = 45))
+```  
+
+The graph compares China's foreign investment by different sectors in terms of project numbers, between 2005 and 2019. Based on the figure, the top four sectors are energy, metals, real estate, and transport. And the least popular projects are from utilities, chemicals, and logistics.
+
+
+## In Energy and Transportation
+Energy and Transportation are the most important sectors that should be looked into when we investigate Chinese FDI. The first one is the largest sector in FDI, which is to explore the raw materials; the second one means the development of transport infrastructure. 
+```{r map2,warning=FALSE, message=FALSE}
+# Data
+library(dplyr)
+investment <- read_csv("./data/investment.csv")
+investment <- investment %>%
+  filter(Year >=2005 && Year <= 2019)
+geo <- read.csv(file = "./data/countrygeo.csv")
+investmentgeo<-left_join(investment,geo,by = c("Country" = "country"))
+
+energy <- investmentgeo %>%
+  filter(Sector=="Energy") 
+
+energy <- energy %>%
+  group_by(Country,lat,lon,Sector) %>%
+  summarize(project_num = n(),fdi_amount= sum(Quantity_in_Millions))
+
+trans <- investmentgeo %>%
+  filter(Sector =="Transport") 
+trans <- trans %>%
+  group_by(Country,lat,lon,Sector) %>%
+  summarize(project_num = n(),fdi_amount= sum(Quantity_in_Millions))
+
+```
+```{r map2.2,warning=FALSE, message=FALSE}
+library(leaflet)
+library(ggmap)
+ernergypop <- paste("Recipient Country:", energy$Country, "<br/>",
+                      "Projects Num:", energy$project_num, "<br/>",
+                      "FDI Amount:", round(energy$fdi_amount, 
+                                           digits = 0),"Million", "<br/>")
+
+transpop <- paste("Recipient Country:", trans$Country, "<br/>",
+                      "Projects Num:", trans$project_num, "<br/>",
+                      "FDI Amount:", round(trans$fdi_amount, 
+                                           digits = 0),"Million", "<br/>")
+
+EnergyIcon <- icons(
+  iconUrl = "./pic/energy_icon.png",
+  iconWidth = 12, iconHeight = 12,
+  iconAnchorX = 8, iconAnchorY = 8
+  )
+TransIcon <- icons(
+  iconUrl = "./pic/transportation.png",
+  iconWidth = 12, iconHeight = 12,
+  iconAnchorX = 8, iconAnchorY = 8
+  )
+
+leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  #setView(lng = 115.7, lat = 39.4,zoom=100) %>%
+  addMarkers(data = energy, 
+             lng = energy$lon, lat = energy$lat,
+             icon = EnergyIcon,
+             popup = ernergypop,
+             group = "Energy") %>%
+  addMarkers(data = trans, 
+             lng = ~lon, lat = ~lat,
+             icon = TransIcon,
+             popup = transpop,
+             group = "Transport") %>%
+  
+  addControl("FDI Recipient Countries", position = "topright") %>%
+  addLayersControl(overlayGroups = c("Energy", "Transport"),
+                   options = layersControlOptions(collapsed = T))
+```
+
+From the graph we can see that the distribution of energy projects is spreadly more widely than transportation projects. 
+In Europe and Southeast Asia, most countries have both energy and transportation projects. But in Africa, the differences are shown.
+There are only a few transport and energy projects in North America.
+
+## Network Analysis
+In this graph, the size of Country Name is decided by the investment stock with China. The larger the stock is, the bigger the name is.
+The color of the name varied by its largest CN FDI sector.
+```{r,warning=FALSE, message=FALSE}
+library(dplyr)
+library('igraph')
+info<-data.frame(country=investment$Country,quantity=investment$Quantity_in_Millions,sector=investment$Sector)
+
+sector_info<-info %>% group_by(country) %>% summarize (sector =names(which.max(table(sector))))
+# number of countries:101
+quantity_info<-info%>%group_by(country)%>% summarize (quantity=sum(quantity))
+```
+
+```{r}
+link<-data.frame(from=rep('China',125),to=quantity_info$country,quantity=quantity_info$quantity)
+node<-data.frame(id=quantity_info$country,country=quantity_info$country,quantity=quantity_info$quantity,sector=sector_info$sector)
+china<-data.frame(id="China",country="China",quantity=100000,sector="Center")
+node<-rbind(node,china)
+index<-data.frame(index=c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15),sector=c("Agriculture","Chemicals","Energy","Entertainment","Finance","Health","Logistics","Metals","Other","Real estate","Technology","Tourism","Transport","Utilities","Center"))
+node$sector<-as.character(node$sector)
+sector_index<-vector()
+for (i in 1:126)
+{
+  sector_index[i]=index[index$sector==node$sector[i],1]
+}
+node<-cbind(node,sector_index)
+```
+
+```{r}
+# table(info$sector)
+```
+
+```{r}
+net <- graph_from_data_frame(d=link, vertices=node, directed=F)
+```
+
+
+```{r}
+colrs <- c("springgreen4", "tomato4", "black", "hotpink1", "gold","bisque", "lightblue1", "grey75", "purple4", "tan4", "turquoise", "orange", "navyblue","steelblue4","red")
+V(net)$label.color <- colrs[V(net)$sector_index]
+V(net)$size <- V(net)$quantity^0.5*0.1
+V(net)$label.cex <- V(net)$quantity^0.5*0.008
+plot(net,vertex.shape="none") 
+library(RColorBrewer)
+legend("topright", legend=c("Agriculture","Chemicals","Energy","Entertainment","Finance","Health","Logistics","Metals","Other","Real estate","Technology","Tourism","Transport","Utilities","Center"), col = colrs , bty = "n", pch=20 , pt.cex = 1, cex = 0.6, text.col=colrs , horiz = FALSE, inset = c(0.1, 0.1))
+```
+
+This plot shows us the amount of invest for each country and the most common invest sector for each country from China. We noticed that China invested more on big countries (from the perspective of GDP or population). And those investments in big countries are dominated by the energy sector, which is easy to understand, Energy accounted a great proportion of cost for any industry. Next comes the Real estate and Algriculture. We can conclude from the plot that the primary industry and secondary industry take the vast majority of Chinses foreign investment while the tertiary industry like entertainment or tourism just take a negligible proportion of the investment.

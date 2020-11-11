@@ -1,0 +1,49 @@
+# Data sources
+
+Since the Chinese government does not disclose detailed Chinese foreign investment data, studying Chinese foreign investment would rely on independent databases. In this study, we will mainly use two sources for Chinese foreign investment. One is the China Global Investment Tracker (CGIT) from the American Enterprise Institute (AEI). The other is the Global Chinese Official Finance Dataset from the AidData Lab at the College of William & Mary. 
+
+CGIT follows Chinese global activities the way the Chinese government does. China’s Ministry of Commerce (MOFCOM) publishes monthly data on Chinese outward investment and China’s total foreign contractual project value, two separate types of China’s development finance. In similar ways, CGIT tracks them separately and together as “investment” and “construction” projects. Being able to compare its total value to the regularly updated MOFCOM data, CGIT helps researchers understand how well it follows the official figure. So far, the Tracker has managed to retain a small gap from the official aggregate data published by the Chinese government. 
+
+The Geocoded Global Chinese Official Finance Dataset includes five datasets: one on China’s Official Development Assistance (ODA)-like projects, one on China’s Other Official Flows (OOF)-like projects, one on projects that are neither ODA-like nor OOF-like, one combining them all, and one with detailed project descriptions and sources for all projects. ODA and OOF are OECD countries definition. ODAs are traditionally referred as aids, whereas OOF are just investment. Since Chinese aids and investment do not use such a standard, researchers at AidData have to discern which are which by themselves so that the data could be comparable to western investment and aids.
+
+Understanding the pros and cons of two datasets, we will use the investment information from CGIT, which covers the period from 2005 to 2019, and the text data from AidData’s data, which covers the period from 2005 to 2014.
+
+## Presentation of Investment Data from 2005 to 2019
+100 samples from dataset:
+```{r,warning=FALSE, message=FALSE}
+investment <- read_csv("./data/investment.csv")
+investment <- investment %>%
+  filter(Year >=2005 && Year <= 2019)
+
+datashow<- investment[1:100,c("Year","Quantity_in_Millions","Sector","Country","Transaction Party")]
+library(DT)
+pretty_headers <- c("Year","Investors","Quantity_in_Millions","Secotr","Country")
+datashow %>%
+  datatable(
+    rownames = FALSE,
+    colnames = pretty_headers,
+    filter = list(position = "top"),
+    options = list(language = list(sSearch = "Filter:"))
+  )
+```
+
+## Presentation of Text Data from 2005 to 2014
+10 samples from dataset:
+```{r,warning=FALSE, message=FALSE}
+textdata <- read_csv("./data/GlobalChineseOfficialFinanceDataset_v1.0.csv")
+textdata <- textdata %>%
+  filter(year >=2005 && year <= 2019)
+
+textdatashow<- textdata[1:10,c("project_id","year","recipient_condensed","title","description")]
+
+library(DT)
+pretty_headers2 <- c("Project ID","Year","Recipient Country","title","Description")
+textdatashow %>%
+  datatable(
+    rownames = FALSE,
+    colnames = pretty_headers2,
+    filter = list(position = "top"),
+    options = list(language = list(sSearch = "Filter:"))
+  )
+```
+

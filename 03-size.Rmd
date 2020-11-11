@@ -1,0 +1,229 @@
+# Size of Investment
+
+## China Foreign Investment by Region
+```{r byregion, warning=FALSE, message=FALSE}
+library(knitr)
+library(RColorBrewer)
+library(ggplot2)
+library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(plotly)
+investment <- read_csv("./data/investment.csv")
+investment <- investment %>%
+  filter(Year >=2005 && Year <= 2019)
+data2 <- investment %>%
+  group_by(Region) %>%
+  summarise(counts = n()) %>%
+  arrange(desc(Region)) %>%
+  mutate(prop = round(counts*100/sum(counts), 1),
+         lab.ypos = cumsum(prop) - 0.5*prop)
+
+##plot
+f2 <- ggplot(data2, aes(x = "", y = prop, fill = Region)) +
+  geom_bar(width = 1, stat = "identity", color = "white") +
+  geom_text(aes(y = lab.ypos, label = prop), color = "white")+
+  coord_polar("y", start = 0)+
+  ggpubr::fill_palette("jco")+
+  ggtitle("China Foreign Investment by Region")+
+  theme_void()
+f2
+```
+
+The graph compares China's investment to foreign countries by different target regions in terms of project numbers, between 2005 and 2019. We used the percentage to present the number of projects. The top three target regions or countries are Europe, East Asia, and USA. However, if we combine the data from North America with USA, then North America should be the second most popular target of Chinese investment. MENA region has the fewest number of projects.
+
+
+## Investment over World
+
+We further plot the countries on the world map, and have a detailed insight on the world distribution:
+
+```{r dataset,warning=FALSE, message=FALSE}
+library(tidyverse)
+investment <- read_csv("./data/investment.csv")
+investment <- investment %>%
+  filter(Year >=2005 && Year <= 2019)
+map_world <- map_data("world")
+
+##name adjustment
+investment <- investment %>%
+  mutate(country = recode(
+    Country, `Russian Federation` = "Russia", 
+    `Trinidad-Tobago` = "Trinidad", 
+    `Antigua and Barbuda` = "Antigua",
+    `Sao Tome` = "Sao Tome and Principe", 
+    `UAE` =  "United Arab Emirates"
+  ))
+fdi_inv <- investment%>%
+  group_by(country) %>%
+  summarize(project_num = n())
+fdi_inv <- left_join(map_world, fdi_inv, by = c("region" = "country"))
+
+##plot the data
+ggplot(fdi_inv, aes(x = long, y = lat, group = group)) +
+  theme(legend.position = c(0.08,0.28))+
+  geom_polygon(aes(fill = project_num))+
+  scale_fill_gradientn(
+    colours = c( "#2A8A8C","#404E88","#461863"), 
+    values = scales::rescale(c(10,50,100)), 
+    labels = scales::comma,
+    name='Project Number'
+  ) +
+  guides(fill = guide_legend(reverse = T,keywidth = 1.5)) +
+  labs(# legend name
+    #fill = "num of projects", 
+    title = "Number of Chinese FDI projects", 
+    subtitle = "2005 to 2019", 
+    x = NULL,
+    y = NULL
+  )
+```
+
+During 2005 to 2019, we can find that Chinese outward Foreign Direct Investment mainly focuses in USA and Australia,following by Canada, Russia, Brazil, Germany, and India. 
+
+## Network Vesion: Investment over World 
+
+
+```{r IoW Network,warning=FALSE, message=FALSE}
+# Data
+library(dplyr)
+library(maps)
+library(geosphere)
+library(dplyr)
+investment <- read_csv("./data/investment.csv")
+investment <- investment %>%
+  filter(Year >=2005 && Year <= 2019)
+geo <- read.csv(file = "./data/countrygeo.csv")
+
+investinfosum<-investment%>%group_by(Country)%>%summarize(quantity_sum=sum(Quantity_in_Millions))
+
+investgeo<-left_join(investinfosum,geo,by = c("Country" = "country"))
+
+####Plot
+plot_my_connection=function( dep_lon, dep_lat, arr_lon, arr_lat, ...){
+    inter <- gcIntermediate(c(dep_lon, dep_lat), c(arr_lon, arr_lat), n=50, addStartEnd=TRUE, breakAtDateLine=F)             
+    inter=data.frame(inter)
+    diff_of_lon=abs(dep_lon) + abs(arr_lon)
+    if(diff_of_lon > 180){
+        lines(subset(inter, lon>=0), lwd=1, col="Turquoise2")
+        lines(subset(inter, lon<0), lwd=1, col="Turquoise2")
+    }else{
+        lines(inter, lwd=1, col="Turquoise2")
+        }
+    }
+
+map("world", fill=F, col="lightblue", bg="grey1")
+china<-geo%>%filter(country=="China")
+
+for (i in (1:dim(investgeo)[1])) { 
+
+plot_my_connection(china$lon[1], china$lat[1], investgeo$lon[i], investgeo$lat[i])
+}
+
+points(investgeo$lon,investgeo$lat, pch=19,cex=investgeo$quantity_sum^0.5*0.007,col="salmon")
+```
+
+This map shows the network between China and invested countries. The larger the circle is the more total amount from 2005-2014  invested to that counry. We can easily tell that China invest more on big countries like USA, Russia, Canada and Austrailia. Obviously China invested more on developed countries than those less economically developed areas. Noticed that the density of south Africa is abnormaly high compared to its economic.Also, South America and North Africa are two areas that less covered by the invest map of China.
+```{r}
+#investment
+
+```
+
+
+## China Investment by Year <br/>
+Red-Investment, Steelblue-Construction.
+```{r,warning=FALSE, message=FALSE}
+mydata3 = read.csv("./data/combine.csv")  #read csv file 
+#dim(mydata3)
+
+mydata3i <- filter(mydata3, mydata3$Type == "Investment")
+data3i <- mydata3i %>%
+  group_by(Year) %>%
+  summarise(counts = n()) 
+data3i$Year <- as.numeric(as.character(data3i$Year))
+
+mydata3c <- filter(mydata3, mydata3$Type == "Construction")
+data3c <- mydata3c %>%
+  group_by(Year) %>%
+  summarise(counts = n()) 
+data3c$Year <- as.numeric(as.character(data3c$Year))
+
+```
+```{r,warning=FALSE, message=FALSE}
+xx <- ggplot() +
+  geom_line(data3i, mapping =aes(x = Year, y = counts), color = "darkred") +
+  geom_line(data3c, mapping =aes(x = Year, y = counts), color = "steelblue", linetype="twodash") +
+  ggtitle("Figure 3: The 14-Year Trend of China Investment and Construction") +
+    ylab("Number of projects") +
+  scale_x_continuous(breaks=c(2005:2019), labels=c(2005:2019)) +
+  # #scale_color_discrete(name = "FDI Type", labels = c("Investment", "Construction"))+ 
+  # scale_color_manual(values = c(
+  #   'Investment' = 'darkred',
+  #   'Construction' = 'steelblue'))
+  annotate("text", x = 2009, y = 37, label = "Investment") +
+  annotate("text", x = 2007, y = 75, label = "Construction")
+```
+```{r,warning=FALSE, message=FALSE}
+library(plotly)
+ggplotly(xx)
+```
+
+The figure compares numbers of total Chinese foreign investments and construction projects  from 2005 to 2019. We find that the number of Chinese foreign investment has increased year-on-year before 2016 except for 2013. For construction projects, the number of projects has increased year-on-year before 2016 except for 2012. 
+
+The number of investment and construction projects have both peaked in 2016, which are 235 and 206 respectively. It has later experienced a continuous drop in 2017 and 2018. The big decrease in 2019 may due to the fact that the data in 2019 was not fully collected. 
+
+
+## Top 10 Foreign Chinese Investment Destinations Over Years
+```{r,warning=FALSE, message=FALSE}
+investinfo<-data.frame(year=investment$Year,investor=investment$Investor,quantity=investment$Quantity_in_Millions,sector=investment$Sector,country=investment$Country,greenfield=investment$Greenfield)
+```
+```{r}
+library(dplyr)
+df <- data.frame(matrix(ncol = 4, nrow = 0))
+x <- c("year", "country", "quantity_sum","order")
+colnames(df) <- x
+```
+```{r}
+for (i in 2005:2019)
+{
+  tmp<-investinfo%>%
+       filter(year==i)%>%
+       group_by(country)%>%
+       summarise(quantity_sum=sum(quantity))%>%
+       ungroup() %>% 
+       top_n(10, wt=quantity_sum)%>%
+       select(country, quantity_sum)%>%
+       arrange(desc(quantity_sum))%>%
+       slice(1:10) %>%
+       mutate(year=i,order = as.double(rev(seq(10:1))) * 1.0)
+       df <-df %>%bind_rows(tmp)
+}
+
+```
+
+```{r}
+library(ggplot2)
+library(gganimate)
+final_plot <- ggplot(df,aes(order, group = country,color='black')) +
+  geom_tile(aes(y = quantity_sum/2, 
+                height = quantity_sum,
+                width = 0.9), alpha = 0.9,color="black") +
+  geom_text(aes(y = 0, label = paste(country," ")), vjust = 0.2, hjust = 1,color="grey45") +
+  geom_text(aes(x=1,y=40000, label=paste0(year)), size=8, color = "steelblue4") +
+  coord_flip(clip = "off", expand = TRUE) +
+  scale_y_continuous(labels = scales::comma)+
+  theme(legend.position = "none",axis.ticks.y = element_blank(), 
+ axis.text.y = element_blank(),plot.margin = margin(1,1,1,5.5, "cm"))+
+  transition_states(year, 
+                    transition_length = 4, state_length = 3) +
+ labs(title = "Top Foreign Chinese Investment Destinations Over Year", 
+ subtitle = "Top 10 Countries",
+ x="",y="Quantity, millions USD")
+ # ease_aes('cubic-in-out')
+
+```
+
+
+```{r warning=FALSE, message=FALSE}
+final_plot
+```
+We have found that top destinations of Chinese foreign investment change quite regularly. However, countries like the United States, Russia, Germany, Australia,  Canada, Brazil, and Kazakhstan appeared more often than other countries. This shows that Chinese foreign investment projects can be categorized into two groups, with one being more technologically advanced investment, and the other being raw materials investment.  

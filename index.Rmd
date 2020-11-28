@@ -1,6 +1,6 @@
 --- 
 title: "An Analysis of Chinese Foreign Investment (2005-2019)"
-author: "Sebastian He, Ranqing Lan, Yuelin Li, and Wang Yao"
+author: "Sebastian He, Ranqing Lan, Yuelin Li, Wang Yao"
 date: "`r Sys.Date()`"
 site: bookdown::bookdown_site
 ---
